@@ -61,17 +61,21 @@ def check_password_strength(password):
 
 
 def hash_password(password):
-  check_password_strength(password)
+  #check_password_strength(password)
   return scrypt.using(salt_size=16).hash(password)
 
+def compare_password(password, confirm_password) :
+  return password == confirm_password
 
-def add_user(connection, email, password):
+
+def add_user(connection, name ,email, password):
   password_hash = hash_password(password)
   sql = '''
-    INSERT INTO users(email, password_hash)
-    VALUES (:email, :password_hash);
+    INSERT INTO users(name,email, password_hash)
+    VALUES (:name ,:email, :password_hash);
   '''
   connection.execute(sql, {
+    'name' : name,
     'email' : email,
     'password_hash': password_hash
   })
@@ -91,7 +95,7 @@ def get_user(connection, email, password):
   password_hash = user['password_hash']
   if not scrypt.verify(password, password_hash):
     raise Exception('Utilisateur inconnu')
-  return {'id': user['id'], 'email': user['email']}
+  return {'name' : user['name'],'id': user['id'], 'email': user['email']}
 
 
 def change_password(connection, email, old_password, new_password):

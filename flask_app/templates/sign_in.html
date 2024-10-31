@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Inscription{% endblock %}
+{% block content %}
+<form method='POST'>
+    {% if request.method == 'POST' %}
+    <div class="alert alert-warning">
+        Vous n'êtes pas inscrit &#9785;
+    </div>
+    {% endif %}
+    <div class="mb-3">
+        <label for="name" class="form-label">name</label>
+        {{ form.name(id='name', class_ = 'form-control') }}
+      </div>
+    <div class="mb-3">
+      <label for="email" class="form-label">E-mail</label>
+      {{ form.email(id='email', class_ = 'form-control') }}
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Mot de passe</label>
+      {{ form.password(id='password', class_ = 'form-control') }}
+    </div>
+    <div class="mb-3">
+        <label for="password_confirm" class="form-label">Confirmation</label>
+        {{ form.password_confirm(id='password_confirm', class_ = 'form-control') }}
+    </div>
+    <button type="submit" class="btn btn-primary">S'inscrire</button>
+    {{ form.csrf_token }}
+</form>
+{% endblock %}

@@ -44,6 +44,12 @@ class LoginForm(FlaskForm):
   email = EmailField('email', validators=[validators.DataRequired()])
   password = PasswordField('password', validators=[validators.DataRequired()])
 
+class signinForm(FlaskForm):
+  name = StringField('name', validators=[validators.DataRequired()])
+  email = EmailField('email', validators=[validators.DataRequired()])
+  password = PasswordField('password', validators=[validators.DataRequired()])
+  password_confirm = PasswordField('password_confirm', validators=[validators.DataRequired()])
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -147,3 +153,17 @@ def totp():
     except Exception as exception:
       app.log_exception(exception)
   return render_template('totp.html', form=form)
+
+
+@app.route('/signin', methods=['GET', 'POST'])
+def signin():
+  form = signinForm()
+  if form.validate_on_submit():
+    try:
+      connection = model.connect()
+      if model.compare_password(form.password.data, form.password_confirm.data) :
+        user = model.add_user(connection, form.name.data ,form.email.data, form.password.data)
+        return redirect('/login')
+    except Exception as exception:
+      app.log_exception(exception)
+  return render_template('sign_in.html', form=form)
