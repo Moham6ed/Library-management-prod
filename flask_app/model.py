@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from passlib.hash import scrypt
+from flask_app import data
 
 
 def dictionary_factory(cursor, row):
@@ -34,7 +35,40 @@ def create_database(connection):
 
 
 def fill_database(connection):
-  pass
+  books = data.books()
+  for book in books:
+    insert_book(connection, book)
+  book_lists = data.book_lists()
+  for book_list in book_lists:
+    insert_book_list(connection, book_list)
+  book_list_relations = data.book_list_relations()
+  for book_list_relation in book_list_relations:
+    insert_book_list_relation(connection, book_list_relation)
+  
+
+def insert_book(connection, book):
+    sql = '''INSERT INTO books 
+             (id, title, author, genre, publication_date, isbn, description, stock) 
+             VALUES 
+             (:id, :title, :author, :genre, :publication_date, :isbn, :description, :stock)'''
+    connection.execute(sql, book)
+    connection.commit()
+
+def insert_book_list(connection, book_list):
+    sql = '''INSERT INTO book_lists 
+             (id, list_name, description) 
+             VALUES 
+             (:id, :list_name, :description)'''
+    connection.execute(sql, book_list)
+    connection.commit()
+
+def insert_book_list_relation(connection, book_list_relation):
+    sql = '''INSERT INTO book_list_relations 
+             (book_id, list_id) 
+             VALUES 
+             (:book_id, :list_id )'''
+    connection.execute(sql, book_list_relation)
+    connection.commit()
 
 
 def check_password_strength(password):
