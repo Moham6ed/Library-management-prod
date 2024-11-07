@@ -74,7 +74,7 @@ def test_get_book_and_insert_book() :
     book = model.get_book(connection, book_id)
     assert book == books[0]
 
-def test_get_book_list():
+def test_get_books_in_list():
     # Création de la connexion en mémoire
     connection = model.connect(":memory:")
     model.create_database(connection)
@@ -88,7 +88,7 @@ def test_get_book_list():
         model.insert_book_list_relation(connection, {'book_id': relation[0], 'list_id': relation[1]})
     
     # Test pour la liste avec list_id = 1
-    books = model.get_book_list(connection, 1)
+    books = model.get_books_in_list(connection, 1)
     assert len(books) > 0
     for book in books:
         assert 'id' in book
@@ -100,7 +100,7 @@ def test_get_book_list():
         assert 'description' in book
         assert 'stock' in book
 
-def test_get_book_list_relation():
+def test_get_lists_of_book():
     # Création de la connexion en mémoire
     connection = model.connect(":memory:")
     model.create_database(connection)
@@ -114,7 +114,7 @@ def test_get_book_list_relation():
         model.insert_book_list_relation(connection, {'book_id': relation[0], 'list_id': relation[1]})
     
     # Test pour le livre avec book_id = 1
-    lists = model.get_book_list_relation(connection, 1)
+    lists = model.get_lists_of_book(connection, 1)
     assert len(lists) > 0
     for book_list in lists:
         assert 'id' in book_list

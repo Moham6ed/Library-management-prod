@@ -86,7 +86,8 @@ def get_book(connection, id) :
           'stock': book['stock']}
 
 
-def get_book_list(connection, list_id):
+
+def get_books_in_list(connection, list_id):
     sql = '''
         SELECT books.* FROM books
         INNER JOIN book_list_relations ON books.id = book_list_relations.book_id
@@ -111,7 +112,7 @@ def get_book_list(connection, list_id):
         } for book in books
     ]
 
-def get_book_list_relation(connection, book_id):
+def get_lists_of_book(connection, book_id):
     sql = '''
         SELECT book_lists.* FROM book_lists
         INNER JOIN book_list_relations ON book_lists.id = book_list_relations.list_id
