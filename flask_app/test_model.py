@@ -120,3 +120,12 @@ def test_get_lists_of_book():
         assert 'id' in book_list
         assert 'list_name' in book_list
         assert 'description' in book_list
+
+def test_get_list() :
+    connection = model.connect(":memory:")
+    model.create_database(connection)
+    for list in data.book_lists() :
+        model.insert_book_list(connection, list)
+    for book_list in data.book_lists():
+        retrieved_list = model.get_lists(connection, book_list['id'])
+        assert retrieved_list == book_list

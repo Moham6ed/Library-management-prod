@@ -85,7 +85,17 @@ def get_book(connection, id) :
           'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description'],
           'stock': book['stock']}
 
-
+def get_lists(connection, id) :
+  sql = '''
+          SELECT * FROM book_lists
+    WHERE id = :id; 
+'''
+  cursor = connection.execute(sql, {'id': id})
+  list = cursor.fetchall()
+  if len(list)==0:
+    raise Exception('Liste inconnue')
+  list = list[0]
+  return {'id' : list['id'],'list_name': list['list_name'], 'description': list['description']}
 
 def get_books_in_list(connection, list_id):
     sql = '''
