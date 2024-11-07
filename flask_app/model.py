@@ -48,17 +48,17 @@ def fill_database(connection):
 
 def insert_book(connection, book):
     sql = '''INSERT INTO books 
-             (id, title, author, genre, publication_date, isbn, description, stock) 
+             (id, title, author, genre, publication_date, isbn, description, stock,image_url) 
              VALUES 
-             (:id, :title, :author, :genre, :publication_date, :isbn, :description, :stock)'''
+             (:id, :title, :author, :genre, :publication_date, :isbn, :description, :stock,:image_url)'''
     connection.execute(sql, book)
     connection.commit()
 
 def insert_book_list(connection, book_list):
     sql = '''INSERT INTO book_lists 
-             (id, list_name, description) 
+             (id, list_name, description, image_url) 
              VALUES 
-             (:id, :list_name, :description)'''
+             (:id, :list_name, :description, :image_url)'''
     connection.execute(sql, book_list)
     connection.commit()
 
@@ -83,19 +83,30 @@ def get_book(connection, id) :
   book = book[0]
   return {'id' : book['id'],'title': book['title'], 'author': book['author'], 'genre' : book['genre'], 
           'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description'],
-          'stock': book['stock']}
+          'stock': book['stock'],'image_url': book['image_url']}
 
-def get_lists(connection, id) :
-  sql = '''
-          SELECT * FROM book_lists
-    WHERE id = :id; 
-'''
-  cursor = connection.execute(sql, {'id': id})
-  list = cursor.fetchall()
-  if len(list)==0:
-    raise Exception('Liste inconnue')
-  list = list[0]
-  return {'id' : list['id'],'list_name': list['list_name'], 'description': list['description']}
+def get_lists(connection):
+    sql = '''
+        SELECT * FROM book_lists;
+    '''
+    cursor = connection.execute(sql)
+    lists = cursor.fetchall()
+    
+    if not lists:
+        raise Exception('Aucune liste trouvée')
+    
+    # Convertir chaque ligne en dictionnaire pour un accès par clé
+    lists = [
+        {
+            'id': row['id'], 
+            'list_name': row['list_name'], 
+            'description': row['description'], 
+            'image_url': row['image_url']
+        } 
+        for row in lists
+    ]
+    
+    return lists
 
 def get_books_in_list(connection, list_id):
     sql = '''
@@ -118,7 +129,8 @@ def get_books_in_list(connection, list_id):
             'publication_date': book['publication_date'], 
             'isbn': book['isbn'], 
             'description': book['description'], 
-            'stock': book['stock']
+            'stock': book['stock'],
+            'image_url': book['image_url']
         } for book in books
     ]
 
