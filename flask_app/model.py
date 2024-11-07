@@ -71,6 +71,66 @@ def insert_book_list_relation(connection, book_list_relation):
     connection.commit()
 
 
+def get_book(connection, id) :
+  sql = '''
+          SELECT * FROM books
+    WHERE id = :id; 
+'''
+  cursor = connection.execute(sql, {'id': id})
+  book = cursor.fetchall()
+  if len(book)==0:
+    raise Exception('Livre inconnu')
+  book = book[0]
+  return {'id' : book['id'],'title': book['title'], 'author': book['author'], 'genre' : book['genre'], 
+          'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description'],
+          'stock': book['stock']}
+
+
+def get_book_list(connection, list_id):
+    sql = '''
+        SELECT books.* FROM books
+        INNER JOIN book_list_relations ON books.id = book_list_relations.book_id
+        WHERE book_list_relations.list_id = :list_id;
+    '''
+    cursor = connection.execute(sql, {'list_id': list_id})
+    books = cursor.fetchall()
+    
+    if not books:
+        raise Exception('Aucun livre trouvé pour cette liste.')
+    
+    return [
+        {
+            'id': book['id'], 
+            'title': book['title'], 
+            'author': book['author'], 
+            'genre': book['genre'],
+            'publication_date': book['publication_date'], 
+            'isbn': book['isbn'], 
+            'description': book['description'], 
+            'stock': book['stock']
+        } for book in books
+    ]
+
+def get_book_list_relation(connection, book_id):
+    sql = '''
+        SELECT book_lists.* FROM book_lists
+        INNER JOIN book_list_relations ON book_lists.id = book_list_relations.list_id
+        WHERE book_list_relations.book_id = :book_id;
+    '''
+    cursor = connection.execute(sql, {'book_id': book_id})
+    lists = cursor.fetchall()
+    
+    if not lists:
+        raise Exception('Aucune liste trouvée pour ce livre.')
+    
+    return [
+        {
+            'id': book_list['id'], 
+            'list_name': book_list['list_name'], 
+            'description': book_list['description']
+        } for book_list in lists
+    ]
+
 def check_password_strength(password):
   if len(password) < 12:
     raise Exception("Mot de passe trop court")
@@ -129,7 +189,7 @@ def get_user(connection, email, password):
   password_hash = user['password_hash']
   if not scrypt.verify(password, password_hash):
     raise Exception('Utilisateur inconnu')
-  return {'name' : user['name'],'id': user['id'], 'email': user['email']}
+  return {'id': user['id'], 'email': user['email'], 'name' : user['name']}
 
 
 def change_password(connection, email, old_password, new_password):
