@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Édition de livre{% endblock %}
+{% block content %}
+{% if request.method == 'POST' %}
+    <div class="alert alert-warning">
+        Le livre n'a pas pu être ajouté &#9785;
+    </div>
+{% endif %}
+<form method="POST">
+    <div class="mb-3">
+        <label for="title" class="form-label">Titre</label>
+        {{ form.title(id='title', class_='form-control') }}  
+        {% for error in form.title.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="author" class="form-label">Auteur</label>
+        {{ form.author(id='author', class_='form-control') }}  
+        {% for error in form.author.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="genre" class="form-label">Catégorie</label>
+        {{ form.genre(id='genre', class_='form-control') }}  
+        {% for error in form.genre.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="isbn" class="form-label">ISBN</label>
+        {{ form.isbn(id='isbn', class_='form-control') }}  
+        {% for error in form.isbn.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="publication_date" class="form-label">Date de publication</label>
+        {{ form.publication_date(id='publication_date', class_='form-control') }}  
+        {% for error in form.publication_date.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        {{ form.description(id='description', class_='form-control') }}  
+        {% for error in form.description.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <div class="mb-3">
+        <label for="stock" class="form-label">Quantité</label>
+        {{ form.stock(id='stock', class_='form-control') }}  
+        {% for error in form.stock.errors %}
+            <div class="text-danger">{{ error }}</div>
+        {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary">Soumettre</button>
+    {{ form.csrf_token }}
+</form>
+{% endblock %}

@@ -47,12 +47,26 @@ def fill_database(connection):
   
 
 def insert_book(connection, book):
-    sql = '''INSERT INTO books 
-             (id, title, author, genre, publication_date, isbn, description, stock) 
-             VALUES 
-             (:id, :title, :author, :genre, :publication_date, :isbn, :description, :stock)'''
-    connection.execute(sql, book)
+    sql = '''
+    INSERT INTO books 
+    (title, author, genre, publication_date, isbn, description, stock) 
+    VALUES 
+    (:title, :author, :genre, :publication_date, :isbn, :description, :stock)
+    '''
+    cursor = connection.execute(sql, {
+        'title': book['title'],
+        'author': book['author'],
+        'genre': book['genre'],
+        'publication_date': book['publication_date'],
+        'isbn': book['isbn'],
+        'description': book['description'],
+        'stock': book['stock']
+    })
     connection.commit()
+
+    # Retourne l'ID du dernier enregistrement inséré
+    return cursor.lastrowid
+
 
 def insert_book_list(connection, book_list):
     sql = '''INSERT INTO book_lists 
@@ -85,17 +99,18 @@ def get_book(connection, id) :
           'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description'],
           'stock': book['stock']}
 
-def get_lists(connection, id) :
-  sql = '''
+def get_lists(connection):
+    sql = '''
           SELECT * FROM book_lists
-    WHERE id = :id; 
-'''
-  cursor = connection.execute(sql, {'id': id})
-  list = cursor.fetchall()
-  if len(list)==0:
-    raise Exception('Liste inconnue')
-  list = list[0]
-  return {'id' : list['id'],'list_name': list['list_name'], 'description': list['description']}
+    '''
+    cursor = connection.execute(sql)
+    lists = cursor.fetchall()  # Récupère toutes les lignes de la table
+
+    if not lists:
+        raise Exception('Aucune liste trouvée')
+
+    # Retourne une liste de dictionnaires avec les informations de chaque liste
+    return [{'id': row['id'], 'list_name': row['list_name'], 'description': row['description']} for row in lists]
 
 def get_books_in_list(connection, list_id):
     sql = '''
@@ -246,3 +261,6 @@ def totp_secret(connection, user):
   if len(rows) == 0:
     raise Exception("Échec de la double authentification")
   return rows[0]['totp']
+
+
+

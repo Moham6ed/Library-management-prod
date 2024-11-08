@@ -50,6 +50,19 @@ class signinForm(FlaskForm):
   password = PasswordField('password', validators=[validators.DataRequired()])
   password_confirm = PasswordField('password_confirm', validators=[validators.DataRequired()])
 
+class ListForm(FlaskForm):
+    name = StringField('Nom de la liste', validators=[validators.DataRequired()])  # Texte du label en français
+    description = StringField('Description', validators=[validators.DataRequired()])
+
+class BookForm(FlaskForm):
+    title = StringField('Titre', validators=[validators.DataRequired()])
+    author = StringField('Auteur', validators=[validators.DataRequired()])
+    genre = SelectField('Catégorie', coerce=int, validators=[validators.DataRequired()])  # Utiliser SelectField et coerce pour l'ID
+    isbn = IntegerField('ISBN', validators=[validators.DataRequired()])
+    publication_date = StringField('Date de publication', validators=[validators.DataRequired()])
+    description = StringField('Description', validators=[validators.DataRequired()])
+    stock = IntegerField('Quantité', validators=[validators.DataRequired()])
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -167,3 +180,74 @@ def signin():
     except Exception as exception:
       app.log_exception(exception)
   return render_template('sign_in.html', form=form)
+
+@app.route('/list/create', methods=['GET', 'POST'])
+@login_required
+def list_create():
+    form = ListForm()  # Utiliser ListForm avec une majuscule pour le nom de la classe
+    if form.validate_on_submit():
+        try:
+            connection = model.connect()
+            book_list = {  # Renommer la variable pour éviter d'utiliser "list"
+                'id': None,
+                'list_name': form.name.data,  # Utiliser 'name' au lieu de 'list_name'
+                'description': form.description.data
+            }
+            model.insert_book_list(connection, book_list)
+            return redirect('/')
+        except Exception as exception:
+            app.logger.exception(exception)  # Utiliser app.logger.exception pour la trace complète
+    return render_template('list_edit.html', form=form)
+
+
+@app.route('/book/create', methods=['GET', 'POST'])
+@login_required
+def book_create():
+     """
+    Cette fonction gère la création d'un nouveau livre dans l'application.
+
+    - Si la méthode est GET, elle affiche un formulaire pour entrer les détails d'un nouveau livre.
+    - Si la méthode est POST et que le formulaire est validé, elle insère le livre dans la base de données
+      et récupère son ID pour créer une relation avec la liste de genres sélectionnée.
+    - En cas d'erreur lors de l'insertion, elle affiche le formulaire avec un message d'erreur.
+
+    La fonction s'assure également que le champ de sélection "genre" est rempli avec les options
+    disponibles, récupérées depuis la table des listes.
+    """
+    form = BookForm() 
+    connection = model.connect()
+
+    # Récupérer les listes pour remplir le champ "genre"
+    lists = model.get_lists(connection)
+    form.genre.choices = [(lst['id'], lst['list_name']) for lst in lists]  # Affiche 'list_name', mais utilise 'id' comme valeur
+
+    if form.validate_on_submit():
+        try:
+            # Construire un dictionnaire avec les données du formulaire
+            book = {  
+                'title': form.title.data,
+                'author': form.author.data,
+                'genre': str(form.genre.data),
+                'isbn': form.isbn.data,
+                'publication_date': form.publication_date.data,
+                'description': form.description.data,
+                'stock': form.stock.data
+            }
+            # Insérer le livre dans la base de données et récupérer son ID
+            book_id = model.insert_book(connection, book)
+
+
+            # Créer la relation entre le livre et la liste choisie
+            book_list_relation = {
+                'book_id': book_id,
+                'list_id': form.genre.data
+            }
+            model.insert_book_list_relation(connection, book_list_relation)
+
+            return redirect('/')
+        
+        except Exception as exception:
+            app.logger.exception(exception)  # Log de l'exception
+            return render_template('book_edit.html', form=form)
+
+    return render_template('book_edit.html', form=form)

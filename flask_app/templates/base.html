@@ -22,8 +22,8 @@
                 <form method="POST" action="/logout">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <div class="btn-group">
-                        <a href="/liste/create" class="btn btn-outline-primary">Ajouter une liste</a>
-                        <a href="/livre/create" class="btn btn-outline-primary">Ajouter un livre</a>
+                        <a href="/list/create" class="btn btn-outline-primary">Ajouter une liste</a>
+                        <a href="/book/create" class="btn btn-outline-primary">Ajouter un livre</a>
                         <a href="/change_password" class="btn btn-outline-secondary">Mot de passe</a>
                         <span class="btn btn-primary disabled">{{ session['user']['name'] }}</span>
                         <button type="submit" class="btn btn-outline-primary">Déconnexion</button>
