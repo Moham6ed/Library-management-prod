@@ -49,9 +49,9 @@ def fill_database(connection):
 def insert_book(connection, book):
     sql = '''
     INSERT INTO books 
-    (title, author, genre, publication_date, isbn, description, stock) 
+    (title, author, genre, publication_date, isbn, description, stock,image_url) 
     VALUES 
-    (:title, :author, :genre, :publication_date, :isbn, :description, :stock)
+    (:title, :author, :genre, :publication_date, :isbn, :description, :stock,:image_url)
     '''
     cursor = connection.execute(sql, {
         'title': book['title'],
@@ -60,7 +60,8 @@ def insert_book(connection, book):
         'publication_date': book['publication_date'],
         'isbn': book['isbn'],
         'description': book['description'],
-        'stock': book['stock']
+        'stock': book['stock'],
+        'image_url': book['image_url']
     })
     connection.commit()
 
@@ -70,9 +71,9 @@ def insert_book(connection, book):
 
 def insert_book_list(connection, book_list):
     sql = '''INSERT INTO book_lists 
-             (id, list_name, description) 
+             (id, list_name, description, image_url) 
              VALUES 
-             (:id, :list_name, :description)'''
+             (:id, :list_name, :description, :image_url)'''
     connection.execute(sql, book_list)
     connection.commit()
 
@@ -97,20 +98,30 @@ def get_book(connection, id) :
   book = book[0]
   return {'id' : book['id'],'title': book['title'], 'author': book['author'], 'genre' : book['genre'], 
           'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description'],
-          'stock': book['stock']}
+          'stock': book['stock'],'image_url': book['image_url']}
 
 def get_lists(connection):
     sql = '''
-          SELECT * FROM book_lists
+        SELECT * FROM book_lists;
     '''
     cursor = connection.execute(sql)
-    lists = cursor.fetchall()  # Récupère toutes les lignes de la table
-
+    lists = cursor.fetchall()
+    
     if not lists:
         raise Exception('Aucune liste trouvée')
-
-    # Retourne une liste de dictionnaires avec les informations de chaque liste
-    return [{'id': row['id'], 'list_name': row['list_name'], 'description': row['description']} for row in lists]
+    
+    # Convertir chaque ligne en dictionnaire pour un accès par clé
+    lists = [
+        {
+            'id': row['id'], 
+            'list_name': row['list_name'], 
+            'description': row['description'], 
+            'image_url': row['image_url']
+        } 
+        for row in lists
+    ]
+    
+    return lists
 
 def get_books_in_list(connection, list_id):
     sql = '''
@@ -133,7 +144,8 @@ def get_books_in_list(connection, list_id):
             'publication_date': book['publication_date'], 
             'isbn': book['isbn'], 
             'description': book['description'], 
-            'stock': book['stock']
+            'stock': book['stock'],
+            'image_url': book['image_url']
         } for book in books
     ]
 
@@ -229,7 +241,7 @@ def change_password(connection, email, old_password, new_password):
   connection.execute(sql, {
     'password_hash' : password_hash,
     'id': user['id']
-  });
+  })
   connection.commit()
 
 

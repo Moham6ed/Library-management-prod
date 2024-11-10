@@ -1,5 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Home{% endblock %}
 {% block content %}
-Home
+
+<div class="container mt-4">
+    <h1 class="mb-4">Categories </h1>
+    <div class="row">
+        {% for book_list in lists_of_books %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <img src="{{ book_list['image_url'] }}" class="card-img-top" alt="{{ book_list['list_name'] }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ book_list['list_name'] }}</h5>
+                    <p class="card-text">{{ book_list['description'] }}</p>
+                    <a href="{{ url_for('show_books', id_list_books=book_list['id']) }}" class="btn btn-primary">Voir les livres</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
 {% endblock %}

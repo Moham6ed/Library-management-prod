@@ -37,7 +37,38 @@ def login_required(func):
 
 @app.route('/', methods=['GET'])
 def home():
-    return render_template('home.html')
+    connection = model.connect()
+    lists_of_books = model.get_lists(connection)
+    for book in lists_of_books:
+      print(book)
+    return render_template('home.html',lists_of_books=lists_of_books)
+
+@app.route('/show_books/<int:id_list_books>', methods=['GET'])
+def show_books(id_list_books):
+    
+    connection = model.connect()
+    
+    books = model.get_books_in_list(connection, id_list_books)
+   
+    return render_template('books.html', books=books)
+
+@app.route('/show_book/<int:id_book>', methods=['GET'])
+def show_book(id_book):
+    
+    connection = model.connect()
+    
+    book = model.get_book(connection, id_book)
+   
+    return render_template('book.html', book=book)
+
+@app.route('/delete_book/<int:id_book>', methods=['GET','POST'])
+def delete_book(id_book):
+    
+    connection = model.connect()
+    #raise exception ...
+    respons = model.delete_book(connection, id_book)
+   
+    return redirect('/')#render_template('book.html', book=book)
 
 
 class LoginForm(FlaskForm):
@@ -203,7 +234,7 @@ def list_create():
 @app.route('/book/create', methods=['GET', 'POST'])
 @login_required
 def book_create():
-     """
+    """
     Cette fonction gère la création d'un nouveau livre dans l'application.
 
     - Si la méthode est GET, elle affiche un formulaire pour entrer les détails d'un nouveau livre.
