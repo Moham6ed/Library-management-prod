@@ -20,13 +20,15 @@ CREATE TABLE books (
     publication_date DATE,
     isbn VARCHAR(20) UNIQUE,
     description TEXT,
-    stock INTEGER DEFAULT 0
+    stock INTEGER DEFAULT 0,
+    image_url VARCHAR(255)
 );
 
 CREATE TABLE book_lists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     list_name VARCHAR(255) NOT NULL,
-    description TEXT
+    description TEXT,
+    image_url VARCHAR(255)
 );
 
 CREATE TABLE book_list_relations (

@@ -263,4 +263,3 @@ def totp_secret(connection, user):
   return rows[0]['totp']
 
 
-
