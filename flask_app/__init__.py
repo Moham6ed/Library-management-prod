@@ -229,6 +229,9 @@ def list_create():
             image_file = request.files.get('image')
             image_url = None
             if image_file and model.allowed_file(image_file.filename) :
+                # Vérifie si l'image est valide
+                if not model.is_valid_image(image_file):
+                    return render_template('list_edit.html', form=form)
                 # Utilisation de 'list_name' pour générer le nom de fichier
                 list_name = secure_filename(form.name.data)
                 filename = f"{list_name}.png"
@@ -286,6 +289,9 @@ def book_create():
             image_file = request.files.get('image')
             image_url = None
             if image_file and model.allowed_file(image_file.filename) :
+                # Vérifie si l'image est valide
+                if not model.is_valid_image(image_file):
+                    return render_template('list_edit.html', form=form)
                 # Utilisation de 'list_name' pour générer le nom de fichier
                 book_name = secure_filename(str(form.isbn.data))
                 filename = f"{book_name}.png"

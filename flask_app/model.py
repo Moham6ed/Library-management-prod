@@ -285,6 +285,7 @@ def is_valid_image(file):
         # Utiliser Pillow pour vérifier le contenu de l'image
         img = Image.open(file)
         img.verify()  # Cela vérifie si l'image est valide sans la charger complètement
+        file.seek(0)  # Réinitialiser le curseur du fichier
         return True
     except (IOError, SyntaxError) as e:
         return False
