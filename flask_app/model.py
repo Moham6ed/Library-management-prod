@@ -2,7 +2,7 @@ import sqlite3
 import os
 from passlib.hash import scrypt
 from flask_app import data
-
+from PIL import Image
 
 def dictionary_factory(cursor, row):
   dictionary = {}
@@ -273,5 +273,21 @@ def totp_secret(connection, user):
   if len(rows) == 0:
     raise Exception("Échec de la double authentification")
   return rows[0]['totp']
+
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def is_valid_image(file):
+    try:
+        # Utiliser Pillow pour vérifier le contenu de l'image
+        img = Image.open(file)
+        img.verify()  # Cela vérifie si l'image est valide sans la charger complètement
+        return True
+    except (IOError, SyntaxError) as e:
+        return False
+
 
 

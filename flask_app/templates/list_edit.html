@@ -6,14 +6,18 @@
   La liste n'a pas pu être ajoutée &#9785;
 </div>
 {% endif %}
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     <div class="mb-3">
       <label for="name" class="form-label">Nom de la liste</label>
       {{ form.name(id='name', class_='form-control') }}  <!-- Utilisation de 'name' ici -->
     </div>
     <div class="mb-3">
         <label for="description" class="form-label">Description</label>
-        {{ form.description(id='description', class_='form-control') }}  <!-- Utilisation de 'description' ici -->
+        {{ form.description(id='description', class_='form-control') }}  
+    </div>
+    <div class="mb-3">
+      <label for="image" class="form-label">Image</label>
+      <input type="file" name="image" id="image" class="form-control" accept=".png, .jpg, .jpeg, .gif">
     </div>
     <button type="submit" class="btn btn-primary">Soumettre</button>
     {{ form.csrf_token }}
