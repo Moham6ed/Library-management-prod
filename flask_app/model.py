@@ -2,7 +2,7 @@ import sqlite3
 import os
 from passlib.hash import scrypt
 from flask_app import data
-
+from PIL import Image
 
 def dictionary_factory(cursor, row):
   dictionary = {}
@@ -281,7 +281,6 @@ def searchBook(connection, nameBook):
   '''
   params = {'title': f'%{nameBook}%'}
   cursor = connection.execute(sql, params)
-
   books = cursor.fetchall()
   if len(books)==0:
     raise Exception('Aucun résultat')
@@ -298,3 +297,20 @@ def searchBook(connection, nameBook):
             'image_url': book['image_url']
         } for book in books
     ]
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def is_valid_image(file):
+    try:
+        # Utiliser Pillow pour vérifier le contenu de l'image
+        img = Image.open(file)
+        img.verify()  # Cela vérifie si l'image est valide sans la charger complètement
+        file.seek(0)  # Réinitialiser le curseur du fichier
+        return True
+    except (IOError, SyntaxError) as e:
+        return False
+
+
+

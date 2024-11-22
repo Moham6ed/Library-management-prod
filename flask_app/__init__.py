@@ -3,12 +3,13 @@ from flask import Flask, flash, render_template, redirect, request, session
 from flask_app import model
 import datetime
 from flask_wtf import CSRFProtect, FlaskForm
-from wtforms import BooleanField, StringField, SelectField, PasswordField, DateField, TimeField, IntegerField, EmailField, validators
+from wtforms import BooleanField, StringField, SelectField, PasswordField, DateField, TimeField, IntegerField, EmailField, validators, FileField
 from flask_session import Session
 from functools import wraps
 from flask_talisman import Talisman
 import pyotp
 from flask_qrcode import QRcode
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
@@ -24,6 +25,9 @@ Talisman(app, content_security_policy={
 CSRFProtect(app)
 Session(app)
 QRcode(app)
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 
@@ -89,6 +93,7 @@ class signinForm(FlaskForm):
 class ListForm(FlaskForm):
     name = StringField('Nom de la liste', validators=[validators.DataRequired()])  # Texte du label en français
     description = StringField('Description', validators=[validators.DataRequired()])
+    image = FileField('Image', validators=[validators.DataRequired()])
 
 class BookSearchForm(FlaskForm):
     nameBook = StringField('Nom du livre', validators=[validators.DataRequired()])
@@ -101,6 +106,7 @@ class BookForm(FlaskForm):
     publication_date = StringField('Date de publication', validators=[validators.DataRequired()])
     description = StringField('Description', validators=[validators.DataRequired()])
     stock = IntegerField('Quantité', validators=[validators.DataRequired()])
+    image = FileField('Image', validators=[validators.DataRequired()])
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -223,19 +229,44 @@ def signin():
 @app.route('/list/create', methods=['GET', 'POST'])
 @login_required
 def list_create():
-    form = ListForm()  # Utiliser ListForm avec une majuscule pour le nom de la classe
+    form = ListForm()
     if form.validate_on_submit():
         try:
             connection = model.connect()
-            book_list = {  # Renommer la variable pour éviter d'utiliser "list"
+            # Traitement du fichier image
+            image_file = request.files.get('image')
+            image_url = None
+            if image_file and model.allowed_file(image_file.filename) :
+                # Vérifie si l'image est valide
+                if not model.is_valid_image(image_file):
+                    return render_template('list_edit.html', form=form)
+                # Utilisation de 'list_name' pour générer le nom de fichier
+                list_name = secure_filename(form.name.data)
+                filename = f"{list_name}.png"
+
+                # Créez le dossier si nécessaire
+                if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                    os.makedirs(app.config['UPLOAD_FOLDER'])
+
+                # Enregistrement de l'image dans le dossier spécifié
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(image_path)
+
+                # Génération de l'URL pour accéder à l'image
+                image_url = f'/static/{filename}'
+            else:
+                return render_template('list_edit.html', form=form)
+
+            book_list = {
                 'id': None,
-                'list_name': form.name.data,  # Utiliser 'name' au lieu de 'list_name'
-                'description': form.description.data
+                'list_name': form.name.data,
+                'description': form.description.data,
+                'image_url': image_url
             }
             model.insert_book_list(connection, book_list)
             return redirect('/')
         except Exception as exception:
-            app.logger.exception(exception)  # Utiliser app.logger.exception pour la trace complète
+            app.logger.exception(exception)
     return render_template('list_edit.html', form=form)
 
 
@@ -262,6 +293,30 @@ def book_create():
 
     if form.validate_on_submit():
         try:
+            # Traitement du fichier image
+            image_file = request.files.get('image')
+            image_url = None
+            if image_file and model.allowed_file(image_file.filename) :
+                # Vérifie si l'image est valide
+                if not model.is_valid_image(image_file):
+                    return render_template('list_edit.html', form=form)
+                # Utilisation de 'list_name' pour générer le nom de fichier
+                book_name = secure_filename(str(form.isbn.data))
+                filename = f"{book_name}.png"
+
+                # Créez le dossier si nécessaire
+                if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                    os.makedirs(app.config['UPLOAD_FOLDER'])
+
+                # Enregistrement de l'image dans le dossier spécifié
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(image_path)
+
+                # Génération de l'URL pour accéder à l'image
+                image_url = f'/static/{filename}'
+            else:
+                return render_template('book_edit.html', form=form)
+
             # Construire un dictionnaire avec les données du formulaire
             book = {  
                 'title': form.title.data,
@@ -270,7 +325,8 @@ def book_create():
                 'isbn': form.isbn.data,
                 'publication_date': form.publication_date.data,
                 'description': form.description.data,
-                'stock': form.stock.data
+                'stock': form.stock.data,
+                'image_url': image_url
             }
             # Insérer le livre dans la base de données et récupérer son ID
             book_id = model.insert_book(connection, book)
