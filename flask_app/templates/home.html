@@ -9,10 +9,12 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100">
                 <img src="{{ book_list['image_url'] }}" class="card-img-top" alt="{{ book_list['list_name'] }}">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ book_list['list_name'] }}</h5>
                     <p class="card-text">{{ book_list['description'] }}</p>
+                    <div class="mt-auto">
                     <a href="{{ url_for('show_books', id_list_books=book_list['id']) }}" class="btn btn-primary">Voir les livres</a>
+                    </div>
                 </div>
             </div>
         </div>
