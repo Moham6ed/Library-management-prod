@@ -20,6 +20,7 @@
             <p><strong>Stock disponible :</strong> {{ book['stock'] }}</p>
             <!-- Formulaire de suppression -->
             <form action="{{ url_for('delete_book', id_book=book['id']) }}" method="POST">
+                {{ book_search_form.csrf_token }}
                 <button type="submit" class="btn btn-danger">Supprimer</button>
             </form>
         </div>

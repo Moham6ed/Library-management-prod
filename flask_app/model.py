@@ -312,5 +312,28 @@ def is_valid_image(file):
     except (IOError, SyntaxError) as e:
         return False
 
+def delete_book(connection, id_book):
+  try:
+      sql_relation = '''
+          DELETE FROM book_list_relations
+          WHERE book_id = :book_id;
+      '''
+      connection.execute(sql_relation, {'book_id': id_book})
+      sql = '''
+          DELETE FROM books
+          WHERE id = :id;
+      '''
+      cursor = connection.execute(sql, {'id': id_book})
+      connection.commit()
+      if cursor.rowcount > 0:
+          return "Le livre a été supprimé."
+      else:
+          return "Le livre n'a pas été supprimé!"
+  except Exception as e:
+      # Si une erreur se produit, annuler la transaction
+      connection.rollback()
+      return "Le livre n'a pas été supprimé!"
+  
+ 
 
 

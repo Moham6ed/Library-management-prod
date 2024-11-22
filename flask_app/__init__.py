@@ -63,20 +63,16 @@ def show_books(id_list_books):
 
 @app.route('/show_book/<int:id_book>', methods=['GET'])
 def show_book(id_book):
-    
     connection = model.connect()
-    
     book = model.get_book(connection, id_book)
-   
     return render_template('book.html', book=book)
 
-@app.route('/delete_book/<int:id_book>', methods=['GET','POST'])
+@app.route('/delete_book/<int:id_book>', methods=['POST'])
+@login_required
 def delete_book(id_book):
-    
     connection = model.connect()
-    #raise exception ...
-    respons = model.delete_book(connection, id_book)
-   
+    reponse = model.delete_book(connection, id_book)
+    flash(reponse)
     return redirect('/')#render_template('book.html', book=book)
 
 
