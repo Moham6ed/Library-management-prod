@@ -26,6 +26,11 @@ Session(app)
 QRcode(app)
 
 
+
+@app.context_processor
+def inject_():
+    return {'book_search_form': BookSearchForm()}
+
 def login_required(func):
   @wraps(func)
   def wrapper(*args, **kwargs):
@@ -84,6 +89,9 @@ class signinForm(FlaskForm):
 class ListForm(FlaskForm):
     name = StringField('Nom de la liste', validators=[validators.DataRequired()])  # Texte du label en français
     description = StringField('Description', validators=[validators.DataRequired()])
+
+class BookSearchForm(FlaskForm):
+    nameBook = StringField('Nom du livre', validators=[validators.DataRequired()])
 
 class BookForm(FlaskForm):
     title = StringField('Titre', validators=[validators.DataRequired()])
@@ -282,3 +290,25 @@ def book_create():
             return render_template('book_edit.html', form=form)
 
     return render_template('book_edit.html', form=form)
+
+"""
+
+Description:
+Route:
+    - /book/search : Permet la recherche de livres par titre.
+"""
+
+@app.route('/book/search', methods=['POST'])
+def book_search():
+    form = BookSearchForm()  
+    if form.validate_on_submit():
+        try:
+            connection = model.connect()
+            books=model.searchBook(connection, form.nameBook.data)
+        except Exception as exception:
+            app.logger.exception(exception)
+            return redirect('/')
+    return render_template('books.html',books=books)
+
+
+

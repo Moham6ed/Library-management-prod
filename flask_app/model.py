@@ -274,4 +274,27 @@ def totp_secret(connection, user):
     raise Exception("Échec de la double authentification")
   return rows[0]['totp']
 
+def searchBook(connection, nameBook):
+  sql = '''
+          SELECT * FROM books
+    WHERE title like :title
+  '''
+  params = {'title': f'%{nameBook}%'}
+  cursor = connection.execute(sql, params)
 
+  books = cursor.fetchall()
+  if len(books)==0:
+    raise Exception('Aucun résultat')
+  return [
+        {
+            'id': book['id'], 
+            'title': book['title'], 
+            'author': book['author'], 
+            'genre': book['genre'],
+            'publication_date': book['publication_date'], 
+            'isbn': book['isbn'], 
+            'description': book['description'], 
+            'stock': book['stock'],
+            'image_url': book['image_url']
+        } for book in books
+    ]

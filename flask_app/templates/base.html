@@ -14,10 +14,14 @@
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <a class="nav-link" href="/">Accueil</a>
                 </ul>
-                <form class="d-flex me-3" method="GET" action="/search"> <!-- Ajoutez une marge droite ici -->
-                    <input class="form-control me-2" type="search" placeholder="Rechercher..." aria-label="Search" name="query" required>
+                <form id="bookSearchForm"  class="d-flex me-3"  method="post" action="/book/search">
+                    {{ book_search_form.csrf_token }}
+                    {{ book_search_form.nameBook(class="form-control", placeholder="Rechercher un livre", id="nameBook") }}
                     <button class="btn btn-outline-primary" type="submit">Rechercher</button>
                 </form>
+                
+               
+                
                 {% if 'user' in session %}
                 <form method="POST" action="/logout">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
