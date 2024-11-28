@@ -1,0 +1,38 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main  # Branche où les tests se déclencheront
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Étape 1 : Vérification du code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Étape 2 : Configurer Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  # Change selon ta version
+
+      # Étape 3 : Installer les dépendances
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Étape 4 : Lancer les tests
+      - name: Run tests
+        run: |
+          pytest flask_app/tests/test_model.py
+        env:
+          FLASK_APP: flask_app
+          FLASK_ENV: development
