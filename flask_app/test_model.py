@@ -98,7 +98,6 @@ def test_get_books_in_list():
         assert 'publication_date' in book
         assert 'isbn' in book
         assert 'description' in book
-        assert 'stock' in book
 
 def test_get_lists_of_book():
     # Création de la connexion en mémoire

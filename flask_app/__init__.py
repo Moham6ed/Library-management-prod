@@ -10,7 +10,6 @@ from flask_talisman import Talisman
 import pyotp
 from flask_qrcode import QRcode
 from werkzeug.utils import secure_filename
-from PIL import Image
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
@@ -98,7 +97,6 @@ class BookForm(FlaskForm):
     isbn = IntegerField('ISBN', validators=[validators.DataRequired()])
     publication_date = StringField('Date de publication', validators=[validators.DataRequired()])
     description = StringField('Description', validators=[validators.DataRequired()])
-    stock = IntegerField('Quantité', validators=[validators.DataRequired()])
     image = FileField('Image', validators=[validators.DataRequired()])
 
 
@@ -304,14 +302,6 @@ def book_create():
                 # Enregistrement de l'image dans le dossier spécifié
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image_file.save(image_path)
-                 # Redimensionnement de l'image
-                try:
-                    img = Image.open(image_path)
-                    img.thumbnail((300, 300))  # Dimensions maximum : 300x300 pixels
-                    img.save(image_path)  # Remplace l'image existante par la version redimensionnée
-                except Exception as e:
-                    app.logger.exception(f"Erreur lors du redimensionnement de l'image : {str(e)}")
-                    return render_template('book_edit.html', form=form)
 
                 # Génération de l'URL pour accéder à l'image
                 image_url = f'/static/{filename}'
@@ -326,7 +316,6 @@ def book_create():
                 'isbn': form.isbn.data,
                 'publication_date': form.publication_date.data,
                 'description': form.description.data,
-                'stock': form.stock.data,
                 'image_url': image_url
             }
             # Insérer le livre dans la base de données et récupérer son ID

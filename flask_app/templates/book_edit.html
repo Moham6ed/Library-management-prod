@@ -50,13 +50,6 @@
         {% endfor %}
     </div>
     <div class="mb-3">
-        <label for="stock" class="form-label">Quantité</label>
-        {{ form.stock(id='stock', class_='form-control') }}  
-        {% for error in form.stock.errors %}
-            <div class="text-danger">{{ error }}</div>
-        {% endfor %}
-    </div>
-    <div class="mb-3">
         <label for="image" class="form-label">Image</label>
         <input type="file" name="image" id="image" class="form-control" accept=".png, .jpg, .jpeg, .gif">
     </div>

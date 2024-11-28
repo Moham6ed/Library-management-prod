@@ -20,7 +20,6 @@ CREATE TABLE books (
     publication_date DATE,
     isbn VARCHAR(20) UNIQUE,
     description TEXT,
-    stock INTEGER DEFAULT 0,
     image_url VARCHAR(255)
 );
 

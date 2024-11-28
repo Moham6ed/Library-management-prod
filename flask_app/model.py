@@ -49,9 +49,9 @@ def fill_database(connection):
 def insert_book(connection, book):
     sql = '''
     INSERT INTO books 
-    (title, author, genre, publication_date, isbn, description, stock,image_url) 
+    (title, author, genre, publication_date, isbn, description, image_url) 
     VALUES 
-    (:title, :author, :genre, :publication_date, :isbn, :description, :stock,:image_url)
+    (:title, :author, :genre, :publication_date, :isbn, :description, :image_url)
     '''
     cursor = connection.execute(sql, {
         'title': book['title'],
@@ -60,7 +60,6 @@ def insert_book(connection, book):
         'publication_date': book['publication_date'],
         'isbn': book['isbn'],
         'description': book['description'],
-        'stock': book['stock'],
         'image_url': book['image_url']
     })
     connection.commit()
@@ -97,8 +96,8 @@ def get_book(connection, id) :
     raise Exception('Livre inconnu')
   book = book[0]
   return {'id' : book['id'],'title': book['title'], 'author': book['author'], 'genre' : book['genre'], 
-          'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description'],
-          'stock': book['stock'],'image_url': book['image_url']}
+          'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description']
+          ,'image_url': book['image_url']}
 
 def get_lists(connection):
     sql = '''
@@ -144,7 +143,6 @@ def get_books_in_list(connection, list_id):
             'publication_date': book['publication_date'], 
             'isbn': book['isbn'], 
             'description': book['description'], 
-            'stock': book['stock'],
             'image_url': book['image_url']
         } for book in books
     ]
