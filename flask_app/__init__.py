@@ -30,6 +30,11 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
+
+@app.context_processor
+def inject_():
+    return {'book_search_form': BookSearchForm()}
+
 def login_required(func):
   @wraps(func)
   def wrapper(*args, **kwargs):
@@ -58,20 +63,16 @@ def show_books(id_list_books):
 
 @app.route('/show_book/<int:id_book>', methods=['GET'])
 def show_book(id_book):
-    
     connection = model.connect()
-    
     book = model.get_book(connection, id_book)
-   
     return render_template('book.html', book=book)
 
-@app.route('/delete_book/<int:id_book>', methods=['GET','POST'])
+@app.route('/delete_book/<int:id_book>', methods=['POST'])
+@login_required
 def delete_book(id_book):
-    
     connection = model.connect()
-    #raise exception ...
-    respons = model.delete_book(connection, id_book)
-   
+    reponse = model.delete_book(connection, id_book)
+    flash(reponse)
     return redirect('/')#render_template('book.html', book=book)
 
 
@@ -89,6 +90,9 @@ class ListForm(FlaskForm):
     name = StringField('Nom de la liste', validators=[validators.DataRequired()])  # Texte du label en français
     description = StringField('Description', validators=[validators.DataRequired()])
     image = FileField('Image', validators=[validators.DataRequired()])
+
+class BookSearchForm(FlaskForm):
+    nameBook = StringField('Nom du livre', validators=[validators.DataRequired()])
 
 class BookForm(FlaskForm):
     title = StringField('Titre', validators=[validators.DataRequired()])
@@ -336,3 +340,25 @@ def book_create():
             return render_template('book_edit.html', form=form)
 
     return render_template('book_edit.html', form=form)
+
+"""
+
+Description:
+Route:
+    - /book/search : Permet la recherche de livres par titre.
+"""
+
+@app.route('/book/search', methods=['POST'])
+def book_search():
+    form = BookSearchForm()  
+    if form.validate_on_submit():
+        try:
+            connection = model.connect()
+            books=model.searchBook(connection, form.nameBook.data)
+        except Exception as exception:
+            app.logger.exception(exception)
+            return redirect('/')
+    return render_template('books.html',books=books)
+
+
+

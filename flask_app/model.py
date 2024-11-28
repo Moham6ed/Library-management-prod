@@ -272,7 +272,29 @@ def totp_secret(connection, user):
     raise Exception("Échec de la double authentification")
   return rows[0]['totp']
 
-
+def searchBook(connection, nameBook):
+  sql = '''
+          SELECT * FROM books
+    WHERE title like :title
+  '''
+  params = {'title': f'%{nameBook}%'}
+  cursor = connection.execute(sql, params)
+  books = cursor.fetchall()
+  if len(books)==0:
+    raise Exception('Aucun résultat')
+  return [
+        {
+            'id': book['id'], 
+            'title': book['title'], 
+            'author': book['author'], 
+            'genre': book['genre'],
+            'publication_date': book['publication_date'], 
+            'isbn': book['isbn'], 
+            'description': book['description'], 
+            'stock': book['stock'],
+            'image_url': book['image_url']
+        } for book in books
+    ]
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
@@ -288,5 +310,28 @@ def is_valid_image(file):
     except (IOError, SyntaxError) as e:
         return False
 
+def delete_book(connection, id_book):
+  try:
+      sql_relation = '''
+          DELETE FROM book_list_relations
+          WHERE book_id = :book_id;
+      '''
+      connection.execute(sql_relation, {'book_id': id_book})
+      sql = '''
+          DELETE FROM books
+          WHERE id = :id;
+      '''
+      cursor = connection.execute(sql, {'id': id_book})
+      connection.commit()
+      if cursor.rowcount > 0:
+          return "Le livre a été supprimé."
+      else:
+          return "Le livre n'a pas été supprimé!"
+  except Exception as e:
+      # Si une erreur se produit, annuler la transaction
+      connection.rollback()
+      return "Le livre n'a pas été supprimé!"
+  
+ 
 
 
