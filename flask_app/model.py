@@ -191,7 +191,7 @@ def check_password_strength(password):
 
 
 def hash_password(password):
-  #check_password_strength(password)
+  check_password_strength(password)
   return scrypt.using(salt_size=16).hash(password)
 
 def compare_password(password, confirm_password) :
