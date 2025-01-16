@@ -2,7 +2,7 @@ import pytest
 import sys
 import os
 
-# Ajoutez le chemin du répertoire racine à sys.path
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 from flask_app import model, data
 
@@ -64,7 +64,7 @@ def test_change_password_old_password_check():
     assert str(exception_info.value) == 'Utilisateur inconnu'
 
 
-def test_check_password_strength_length():       # A revoir à la fin
+def test_check_password_strength_length():       
     with pytest.raises(Exception) as exception_info:
         model.check_password_strength('aaa')
     assert str(exception_info.value) == 'Mot de passe trop court'
@@ -80,11 +80,11 @@ def test_get_book_and_insert_book() :
     assert book == books[0]
 
 def test_get_books_in_list():
-    # Création de la connexion en mémoire
+    
     connection = model.connect(":memory:")
     model.create_database(connection)
     
-    # Insertion des données de test
+   
     for book in data.books():
         model.insert_book(connection, book)
     for book_list in data.book_lists():
@@ -92,7 +92,7 @@ def test_get_books_in_list():
     for relation in data.book_list_relations():
         model.insert_book_list_relation(connection, {'book_id': relation[0], 'list_id': relation[1]})
     
-    # Test pour la liste avec list_id = 1
+    
     books = model.get_books_in_list(connection, 1)
     assert len(books) > 0
     for book in books:
@@ -105,11 +105,9 @@ def test_get_books_in_list():
         assert 'description' in book
 
 def test_get_lists_of_book():
-    # Création de la connexion en mémoire
     connection = model.connect(":memory:")
     model.create_database(connection)
     
-    # Insertion des données de test
     for book in data.books():
         model.insert_book(connection, book)
     for book_list in data.book_lists():
@@ -117,7 +115,6 @@ def test_get_lists_of_book():
     for relation in data.book_list_relations():
         model.insert_book_list_relation(connection, {'book_id': relation[0], 'list_id': relation[1]})
     
-    # Test pour le livre avec book_id = 1
     lists = model.get_lists_of_book(connection, 1)
     assert len(lists) > 0
     for book_list in lists:
@@ -129,12 +126,11 @@ def test_get_lists():
     connection = model.connect(":memory:")
     model.create_database(connection)
     
-    # Insère toutes les listes dans la base de données
+
     for book_list in data.book_lists():
         model.insert_book_list(connection, book_list)
     
-    # Récupère toutes les listes depuis la base de données
+
     retrieved_lists = model.get_lists(connection)
     
-    # Vérifie que toutes les listes insérées sont bien présentes et dans le même ordre
     assert retrieved_lists == data.book_lists()

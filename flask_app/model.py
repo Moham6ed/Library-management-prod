@@ -109,7 +109,6 @@ def get_lists(connection):
     if not lists:
         raise Exception('Aucune liste trouvée')
     
-    # Convertir chaque ligne en dictionnaire pour un accès par clé
     lists = [
         {
             'id': row['id'], 
@@ -302,10 +301,9 @@ def allowed_file(filename):
 
 def is_valid_image(file):
     try:
-        # Utiliser Pillow pour vérifier le contenu de l'image
         img = Image.open(file)
-        img.verify()  # Cela vérifie si l'image est valide sans la charger complètement
-        file.seek(0)  # Réinitialiser le curseur du fichier
+        img.verify()  
+        file.seek(0)  
         return True
     except (IOError, SyntaxError) as e:
         return False
@@ -328,7 +326,6 @@ def delete_book(connection, id_book):
       else:
           return "Le livre n'a pas été supprimé!"
   except Exception as e:
-      # Si une erreur se produit, annuler la transaction
       connection.rollback()
       return "Le livre n'a pas été supprimé!"
   

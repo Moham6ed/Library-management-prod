@@ -73,7 +73,7 @@ def delete_book(id_book):
     connection = model.connect()
     reponse = model.delete_book(connection, id_book)
     flash(reponse)
-    return redirect('/')#render_template('book.html', book=book)
+    return redirect('/')
 
 
 class LoginForm(FlaskForm):
@@ -87,7 +87,7 @@ class signinForm(FlaskForm):
   password_confirm = PasswordField('password_confirm', validators=[validators.DataRequired()])
 
 class ListForm(FlaskForm):
-    name = StringField('Nom de la liste', validators=[validators.DataRequired()])  # Texte du label en français
+    name = StringField('Nom de la liste', validators=[validators.DataRequired()]) 
     description = StringField('Description', validators=[validators.DataRequired()])
     image = FileField('Image', validators=[validators.DataRequired()])
 
@@ -97,7 +97,7 @@ class BookSearchForm(FlaskForm):
 class BookForm(FlaskForm):
     title = StringField('Titre', validators=[validators.DataRequired()])
     author = StringField('Auteur', validators=[validators.DataRequired()])
-    genre = SelectField('Catégorie', coerce=int, validators=[validators.DataRequired()])  # Utiliser SelectField et coerce pour l'ID
+    genre = SelectField('Catégorie', coerce=int, validators=[validators.DataRequired()])  
     isbn = IntegerField('ISBN', validators=[validators.DataRequired()])
     publication_date = StringField('Date de publication', validators=[validators.DataRequired()])
     description = StringField('Description', validators=[validators.DataRequired()])
@@ -228,26 +228,20 @@ def list_create():
     if form.validate_on_submit():
         try:
             connection = model.connect()
-            # Traitement du fichier image
             image_file = request.files.get('image')
             image_url = None
             if image_file and model.allowed_file(image_file.filename) :
-                # Vérifie si l'image est valide
                 if not model.is_valid_image(image_file):
                     return render_template('list_edit.html', form=form)
-                # Utilisation de 'list_name' pour générer le nom de fichier
                 list_name = secure_filename(form.name.data)
                 filename = f"{list_name}.png"
 
-                # Créez le dossier si nécessaire
                 if not os.path.exists(app.config['UPLOAD_FOLDER']):
                     os.makedirs(app.config['UPLOAD_FOLDER'])
 
-                # Enregistrement de l'image dans le dossier spécifié
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image_file.save(image_path)
 
-                # Génération de l'URL pour accéder à l'image
                 image_url = f'/static/{filename}'
             else:
                 return render_template('list_edit.html', form=form)
@@ -268,51 +262,34 @@ def list_create():
 @app.route('/book/create', methods=['GET', 'POST'])
 @login_required
 def book_create():
-    """
-    Cette fonction gère la création d'un nouveau livre dans l'application.
-
-    - Si la méthode est GET, elle affiche un formulaire pour entrer les détails d'un nouveau livre.
-    - Si la méthode est POST et que le formulaire est validé, elle insère le livre dans la base de données
-      et récupère son ID pour créer une relation avec la liste de genres sélectionnée.
-    - En cas d'erreur lors de l'insertion, elle affiche le formulaire avec un message d'erreur.
-
-    La fonction s'assure également que le champ de sélection "genre" est rempli avec les options
-    disponibles, récupérées depuis la table des listes.
-    """
     form = BookForm() 
     connection = model.connect()
 
-    # Récupérer les listes pour remplir le champ "genre"
     lists = model.get_lists(connection)
-    form.genre.choices = [(lst['id'], lst['list_name']) for lst in lists]  # Affiche 'list_name', mais utilise 'id' comme valeur
+    form.genre.choices = [(lst['id'], lst['list_name']) for lst in lists]  
 
     if form.validate_on_submit():
         try:
-            # Traitement du fichier image
+            
             image_file = request.files.get('image')
             image_url = None
             if image_file and model.allowed_file(image_file.filename) :
-                # Vérifie si l'image est valide
                 if not model.is_valid_image(image_file):
                     return render_template('list_edit.html', form=form)
-                # Utilisation de 'list_name' pour générer le nom de fichier
                 book_name = secure_filename(str(form.isbn.data))
                 filename = f"{book_name}.png"
 
-                # Créez le dossier si nécessaire
                 if not os.path.exists(app.config['UPLOAD_FOLDER']):
                     os.makedirs(app.config['UPLOAD_FOLDER'])
 
-                # Enregistrement de l'image dans le dossier spécifié
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 image_file.save(image_path)
 
-                # Génération de l'URL pour accéder à l'image
                 image_url = f'/static/{filename}'
             else:
                 return render_template('book_edit.html', form=form)
 
-            # Construire un dictionnaire avec les données du formulaire
+
             book = {  
                 'title': form.title.data,
                 'author': form.author.data,
@@ -322,11 +299,9 @@ def book_create():
                 'description': form.description.data,
                 'image_url': image_url
             }
-            # Insérer le livre dans la base de données et récupérer son ID
+          
             book_id = model.insert_book(connection, book)
 
-
-            # Créer la relation entre le livre et la liste choisie
             book_list_relation = {
                 'book_id': book_id,
                 'list_id': form.genre.data
@@ -336,17 +311,11 @@ def book_create():
             return redirect('/')
         
         except Exception as exception:
-            app.logger.exception(exception)  # Log de l'exception
+            app.logger.exception(exception) 
             return render_template('book_edit.html', form=form)
 
     return render_template('book_edit.html', form=form)
 
-"""
-
-Description:
-Route:
-    - /book/search : Permet la recherche de livres par titre.
-"""
 
 @app.route('/book/search', methods=['POST'])
 def book_search():
