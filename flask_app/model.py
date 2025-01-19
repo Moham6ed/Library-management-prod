@@ -290,7 +290,6 @@ def searchBook(connection, nameBook):
             'publication_date': book['publication_date'], 
             'isbn': book['isbn'], 
             'description': book['description'], 
-            'stock': book['stock'],
             'image_url': book['image_url']
         } for book in books
     ]

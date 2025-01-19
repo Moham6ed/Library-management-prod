@@ -54,12 +54,15 @@ def home():
 
 @app.route('/show_books/<int:id_list_books>', methods=['GET'])
 def show_books(id_list_books):
-    
+  try :  
     connection = model.connect()
     
     books = model.get_books_in_list(connection, id_list_books)
    
     return render_template('books.html', books=books)
+  except Exception as e:
+    flash('Liste est vide !')
+    return redirect('/')
 
 @app.route('/show_book/<int:id_book>', methods=['GET'])
 def show_book(id_book):
@@ -326,6 +329,7 @@ def book_search():
             books=model.searchBook(connection, form.nameBook.data)
         except Exception as exception:
             app.logger.exception(exception)
+            flash("Le livre n'a pas été trouvé !")
             return redirect('/')
     return render_template('books.html',books=books)
 
