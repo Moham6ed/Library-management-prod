@@ -1,9 +1,42 @@
-__pycache__/
-*.manifest
-*.spec
-*.log
+# Fichiers de configuration avec secrets
+.env
+*.env
+env.local
+config.local
+
+# Fichiers de base de données
 *.sqlite
-flask_session
-venv
-.venv
-.vscode
+*.db
+
+# Logs
+*.log
+logs/
+
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+
+# Fichiers IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Fichiers de sauvegarde
+*.bak
+*.backup

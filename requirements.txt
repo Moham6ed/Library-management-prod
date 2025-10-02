@@ -13,3 +13,4 @@ pyotp
 talisman
 flask-qrcode
 Pillow
+psycopg[binary]

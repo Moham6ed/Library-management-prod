@@ -1,10 +1,11 @@
-import sqlite3
 import os
+import psycopg
 from passlib.hash import scrypt
 from flask_app import data
 from PIL import Image
 
 def dictionary_factory(cursor, row):
+  """Factory pour créer des dictionnaires à partir des résultats PostgreSQL"""
   dictionary = {}
   for index in range(len(cursor.description)):
     column_name = cursor.description[index][0]
@@ -12,25 +13,31 @@ def dictionary_factory(cursor, row):
   return dictionary
 
 
-def connect(database = "database.sqlite"):
-  connection = sqlite3.connect(database)
-  connection.set_trace_callback(print)
-  connection.execute('PRAGMA foreign_keys = 1')
-  connection.row_factory = dictionary_factory
+def connect(database_url=None):
+  """Connexion à la base PostgreSQL"""
+  if database_url is None:
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+      raise Exception("Variable d'environnement DATABASE_URL manquante")
+  
+  connection = psycopg.connect(database_url)
+  # PostgreSQL n'a pas besoin de PRAGMA foreign_keys, c'est activé par défaut
   return connection
 
 
 def read_build_script():
+  """Lire le script de création de schéma (PostgreSQL)"""
   path = os.path.join(os.path.dirname(__file__), 'build.sql')
-  file = open(path)
-  script = file.read()
-  file.close()
+  with open(path, 'r', encoding='utf-8') as file:
+    script = file.read()
   return script
 
 
 def create_database(connection):
+  """Créer le schéma de base de données PostgreSQL"""
   script = read_build_script()
-  connection.executescript(script)
+  with connection.cursor() as cur:
+    cur.execute(script)
   connection.commit()
 
 
@@ -47,124 +54,137 @@ def fill_database(connection):
   
 
 def insert_book(connection, book):
+    """Insérer un livre dans la base PostgreSQL"""
     sql = '''
     INSERT INTO books 
     (title, author, genre, publication_date, isbn, description, image_url) 
     VALUES 
-    (:title, :author, :genre, :publication_date, :isbn, :description, :image_url)
+    (%(title)s, %(author)s, %(genre)s, %(publication_date)s, %(isbn)s, %(description)s, %(image_url)s)
+    RETURNING id
     '''
-    cursor = connection.execute(sql, {
-        'title': book['title'],
-        'author': book['author'],
-        'genre': book['genre'],
-        'publication_date': book['publication_date'],
-        'isbn': book['isbn'],
-        'description': book['description'],
-        'image_url': book['image_url']
-    })
-    connection.commit()
-
-    # Retourne l'ID du dernier enregistrement inséré
-    return cursor.lastrowid
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {
+            'title': book['title'],
+            'author': book['author'],
+            'genre': book['genre'],
+            'publication_date': book['publication_date'],
+            'isbn': book['isbn'],
+            'description': book['description'],
+            'image_url': book['image_url']
+        })
+        result = cursor.fetchone()
+        connection.commit()
+        return result[0] if result else None
 
 
 def insert_book_list(connection, book_list):
+    """Insérer une liste de livres dans la base PostgreSQL"""
     sql = '''INSERT INTO book_lists 
              (id, list_name, description, image_url) 
              VALUES 
-             (:id, :list_name, :description, :image_url)'''
-    connection.execute(sql, book_list)
-    connection.commit()
+             (%(id)s, %(list_name)s, %(description)s, %(image_url)s)'''
+    with connection.cursor() as cursor:
+        cursor.execute(sql, book_list)
+        connection.commit()
 
 def insert_book_list_relation(connection, book_list_relation):
+    """Insérer une relation livre-liste dans la base PostgreSQL"""
     sql = '''INSERT INTO book_list_relations 
              (book_id, list_id) 
              VALUES 
-             (:book_id, :list_id )'''
-    connection.execute(sql, book_list_relation)
-    connection.commit()
+             (%s, %s)'''
+    with connection.cursor() as cursor:
+        cursor.execute(sql, book_list_relation)
+        connection.commit()
 
 
-def get_book(connection, id) :
+def get_book(connection, id):
+  """Récupérer un livre par son ID depuis PostgreSQL"""
   sql = '''
           SELECT * FROM books
-    WHERE id = :id; 
+    WHERE id = %s; 
 '''
-  cursor = connection.execute(sql, {'id': id})
-  book = cursor.fetchall()
-  if len(book)==0:
-    raise Exception('Livre inconnu')
-  book = book[0]
-  return {'id' : book['id'],'title': book['title'], 'author': book['author'], 'genre' : book['genre'], 
-          'publication_date' : book['publication_date'], 'isbn' : book['isbn'], 'description' : book['description']
-          ,'image_url': book['image_url']}
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (id,))
+    book = cursor.fetchone()
+    if not book:
+      raise Exception('Livre inconnu')
+    return {
+      'id': book[0], 'title': book[1], 'author': book[2], 'genre': book[3], 
+      'publication_date': book[4], 'isbn': book[5], 'description': book[6],
+      'image_url': book[7]
+    }
 
 def get_lists(connection):
+    """Récupérer toutes les listes de livres depuis PostgreSQL"""
     sql = '''
         SELECT * FROM book_lists;
     '''
-    cursor = connection.execute(sql)
-    lists = cursor.fetchall()
-    
-    if not lists:
-        raise Exception('Aucune liste trouvée')
-    
-    lists = [
-        {
-            'id': row['id'], 
-            'list_name': row['list_name'], 
-            'description': row['description'], 
-            'image_url': row['image_url']
-        } 
-        for row in lists
-    ]
-    
-    return lists
+    with connection.cursor() as cursor:
+        cursor.execute(sql)
+        lists = cursor.fetchall()
+        
+        if not lists:
+            raise Exception('Aucune liste trouvée')
+        
+        return [
+            {
+                'id': row[0], 
+                'list_name': row[1], 
+                'description': row[2], 
+                'image_url': row[3]
+            } 
+            for row in lists
+        ]
 
 def get_books_in_list(connection, list_id):
+    """Récupérer les livres d'une liste depuis PostgreSQL"""
     sql = '''
         SELECT books.* FROM books
         INNER JOIN book_list_relations ON books.id = book_list_relations.book_id
-        WHERE book_list_relations.list_id = :list_id;
+        WHERE book_list_relations.list_id = %s;
     '''
-    cursor = connection.execute(sql, {'list_id': list_id})
-    books = cursor.fetchall()
-    
-    if not books:
-        raise Exception('Aucun livre trouvé pour cette liste.')
-    
-    return [
-        {
-            'id': book['id'], 
-            'title': book['title'], 
-            'author': book['author'], 
-            'genre': book['genre'],
-            'publication_date': book['publication_date'], 
-            'isbn': book['isbn'], 
-            'description': book['description'], 
-            'image_url': book['image_url']
-        } for book in books
-    ]
+    with connection.cursor() as cursor:
+        cursor.execute(sql, (list_id,))
+        books = cursor.fetchall()
+        
+        if not books:
+            raise Exception('Aucun livre trouvé pour cette liste.')
+        
+        return [
+            {
+                'id': book[0], 
+                'title': book[1], 
+                'author': book[2], 
+                'genre': book[3],
+                'publication_date': book[4], 
+                'isbn': book[5], 
+                'description': book[6], 
+                'image_url': book[7]
+            } for book in books
+        ]
 
 def get_lists_of_book(connection, book_id):
+    """Récupérer les listes contenant un livre depuis PostgreSQL"""
     sql = '''
         SELECT book_lists.* FROM book_lists
         INNER JOIN book_list_relations ON book_lists.id = book_list_relations.list_id
-        WHERE book_list_relations.book_id = :book_id;
+        WHERE book_list_relations.book_id = %s;
     '''
-    cursor = connection.execute(sql, {'book_id': book_id})
-    lists = cursor.fetchall()
-    
-    if not lists:
-        raise Exception('Aucune liste trouvée pour ce livre.')
-    
-    return [
-        {
-            'id': book_list['id'], 
-            'list_name': book_list['list_name'], 
-            'description': book_list['description']
-        } for book_list in lists
-    ]
+    with connection.cursor() as cursor:
+        cursor.execute(sql, (book_id,))
+        lists = cursor.fetchall()
+        
+        if not lists:
+            raise Exception('Aucune liste trouvée pour ce livre.')
+        
+        return [
+            {
+                'id': book_list[0], 
+                'list_name': book_list[1], 
+                'description': book_list[2]
+            } for book_list in lists
+        ]
 
 def check_password_strength(password):
   if len(password) < 12:
@@ -197,100 +217,107 @@ def compare_password(password, confirm_password) :
   return password == confirm_password
 
 
-def add_user(connection, name ,email, password):
+def add_user(connection, name, email, password):
+  """Ajouter un utilisateur dans PostgreSQL"""
   password_hash = hash_password(password)
   sql = '''
-    INSERT INTO users(name,email, password_hash)
-    VALUES (:name ,:email, :password_hash);
+    INSERT INTO users(name, email, password_hash)
+    VALUES (%s, %s, %s);
   '''
-  connection.execute(sql, {
-    'name' : name,
-    'email' : email,
-    'password_hash': password_hash
-  })
-  connection.commit()
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (name, email, password_hash))
+    connection.commit()
 
 
 def get_user(connection, email, password):
+  """Récupérer un utilisateur depuis PostgreSQL"""
   sql = '''
     SELECT * FROM users
-    WHERE email = :email;
+    WHERE email = %s;
   '''
-  cursor = connection.execute(sql, {'email': email})
-  users = cursor.fetchall()
-  if len(users)==0:
-    raise Exception('Utilisateur inconnu')
-  user = users[0]
-  password_hash = user['password_hash']
-  if not scrypt.verify(password, password_hash):
-    raise Exception('Utilisateur inconnu')
-  return {'id': user['id'], 'email': user['email'], 'name' : user['name']}
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (email,))
+    user = cursor.fetchone()
+    if not user:
+      raise Exception('Utilisateur inconnu')
+    password_hash = user[3]  # password_hash est à l'index 3
+    if not scrypt.verify(password, password_hash):
+      raise Exception('Utilisateur inconnu')
+    return {'id': user[0], 'email': user[2], 'name': user[1]}
 
 
 def change_password(connection, email, old_password, new_password):
+  """Changer le mot de passe d'un utilisateur dans PostgreSQL"""
   user = get_user(connection, email, old_password)
   password_hash = hash_password(new_password)
   sql = '''
     UPDATE users
-    SET password_hash = :password_hash
-    WHERE id = :id 
+    SET password_hash = %s
+    WHERE id = %s 
   '''
-  connection.execute(sql, {
-    'password_hash' : password_hash,
-    'id': user['id']
-  })
-  connection.commit()
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (password_hash, user['id']))
+    connection.commit()
 
 
 def update_totp_secret(connection, user_id, totp_secret):
+  """Mettre à jour le secret TOTP d'un utilisateur dans PostgreSQL"""
   sql = '''
     UPDATE users
-    SET totp = :totp_secret
-    WHERE id = :user_id
+    SET totp = %s
+    WHERE id = %s
   '''
-  connection.execute(sql, {'user_id' : user_id, 'totp_secret': totp_secret})
-  connection.commit()
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (totp_secret, user_id))
+    connection.commit()
 
 
 def totp_enabled(connection, user):
+  """Vérifier si TOTP est activé pour un utilisateur dans PostgreSQL"""
   sql = '''
     SELECT * FROM users
-    WHERE id = :id AND totp IS NULL
+    WHERE id = %s AND totp IS NULL
   '''
-  rows = connection.execute(sql, {'id' : user['id']}).fetchall()
-  return len(rows) == 0
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (user['id'],))
+    rows = cursor.fetchall()
+    return len(rows) == 0
 
 
 def totp_secret(connection, user):
+  """Récupérer le secret TOTP d'un utilisateur depuis PostgreSQL"""
   sql = '''
     SELECT totp FROM users
-    WHERE id = :id AND totp IS NOT NULL
+    WHERE id = %s AND totp IS NOT NULL
   '''
-  rows = connection.execute(sql, {'id' : user['id']}).fetchall()
-  if len(rows) == 0:
-    raise Exception("Échec de la double authentification")
-  return rows[0]['totp']
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (user['id'],))
+    rows = cursor.fetchall()
+    if len(rows) == 0:
+      raise Exception("Échec de la double authentification")
+    return rows[0][0]
 
 def searchBook(connection, nameBook):
+  """Rechercher des livres par titre dans PostgreSQL"""
   sql = '''
           SELECT * FROM books
-    WHERE title like :title
+    WHERE title ILIKE %s
   '''
-  params = {'title': f'%{nameBook}%'}
-  cursor = connection.execute(sql, params)
-  books = cursor.fetchall()
-  if len(books)==0:
-    raise Exception('Aucun résultat')
-  return [
+  with connection.cursor() as cursor:
+    cursor.execute(sql, (f'%{nameBook}%',))
+    books = cursor.fetchall()
+    if len(books)==0:
+      raise Exception('Aucun résultat')
+    return [
         {
-            'id': book['id'], 
-            'title': book['title'], 
-            'author': book['author'], 
-            'genre': book['genre'],
-            'publication_date': book['publication_date'], 
-            'isbn': book['isbn'], 
-            'description': book['description'], 
-            'image_url': book['image_url']
+            'id': book[0], 
+            'title': book[1], 
+            'author': book[2], 
+            'genre': book[3],
+            'publication_date': book[4], 
+            'isbn': book[5], 
+            'description': book[6], 
+            'image_url': book[7]
         } for book in books
     ]
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -308,22 +335,26 @@ def is_valid_image(file):
         return False
 
 def delete_book(connection, id_book):
+  """Supprimer un livre et ses relations dans PostgreSQL"""
   try:
-      sql_relation = '''
-          DELETE FROM book_list_relations
-          WHERE book_id = :book_id;
-      '''
-      connection.execute(sql_relation, {'book_id': id_book})
-      sql = '''
-          DELETE FROM books
-          WHERE id = :id;
-      '''
-      cursor = connection.execute(sql, {'id': id_book})
-      connection.commit()
-      if cursor.rowcount > 0:
-          return "Le livre a été supprimé."
-      else:
-          return "Le livre n'a pas été supprimé!"
+      with connection.cursor() as cursor:
+          sql_relation = '''
+              DELETE FROM book_list_relations
+              WHERE book_id = %s;
+          '''
+          cursor.execute(sql_relation, (id_book,))
+          
+          sql = '''
+              DELETE FROM books
+              WHERE id = %s;
+          '''
+          cursor.execute(sql, (id_book,))
+          
+          if cursor.rowcount > 0:
+              connection.commit()
+              return "Le livre a été supprimé."
+          else:
+              return "Le livre n'a pas été supprimé!"
   except Exception as e:
       connection.rollback()
       return "Le livre n'a pas été supprimé!"

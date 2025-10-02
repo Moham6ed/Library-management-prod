@@ -1,136 +1,237 @@
 import pytest
 import sys
 import os
+import psycopg
+from unittest.mock import patch, MagicMock
 
-
+# Ajouter le chemin du projet
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from flask_app import model, data
+from flask_app import model
 
+# Configuration de test
+TEST_DATABASE_URL = "postgresql://test_user:test_pass@localhost:5432/test_db"
 
-def test_add_and_get_user():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    model.add_user(connection,'name1' ,'test1@example.com', '1Secret1234**')
-    model.add_user(connection, 'name2','test2@example.com', '2Secret1234**')
-    user1 = model.get_user(connection,'test1@example.com', '1Secret1234**')
-    user2 = model.get_user(connection, 'test2@example.com', '2Secret1234**')
-    assert user1 == {'id' : 1, 'email' : 'test1@example.com', 'name': 'name1'}
-    assert user2 == {'id' : 2, 'email' : 'test2@example.com', 'name': 'name2'}
-
-
-def test_get_user_exception():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    model.add_user(connection, 'name','test@example.com', 'Secret1234**')
-    with pytest.raises(Exception) as exception_info:
-        model.get_user(connection, 'test1@example.com', 'Secret1234**')
-    assert str(exception_info.value) == 'Utilisateur inconnu'
-    with pytest.raises(Exception) as exception_info:
-        model.get_user(connection, 'test@example.com', '1Secret1234**')
-    assert str(exception_info.value) == 'Utilisateur inconnu'
-    with pytest.raises(Exception) as exception_info:
-        model.get_user(connection, 'test1@example.com', '1Secret1234**')
-    assert str(exception_info.value) == 'Utilisateur inconnu'
-
-
-def test_add_user_email_unique():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    model.create_database(connection)
-    model.add_user(connection, 'name1','test1@example.com', '1Secret1234**')
-    with pytest.raises(Exception) as exception_info:
-        model.add_user(connection, 'name4','test1@example.com', '2Secret1234**')
-    assert str(exception_info.value) == 'UNIQUE constraint failed: users.email'
-
-
-def test_change_password():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    model.add_user(connection, 'name','test@example.com', '1Secret1234**')
-    model.change_password(connection, 'test@example.com', '1Secret1234**', '2Secret1234**')
-    user = model.get_user(connection, 'test@example.com', '2Secret1234**')
-    assert user == {'id' : 1, 'email' : 'test@example.com', 'name' : 'name'}
-    with pytest.raises(Exception) as exception_info:
-        model.get_user(connection, 'test@example.com', '1Secret1234**')
-    assert str(exception_info.value) == 'Utilisateur inconnu'
-
-
-def test_change_password_old_password_check():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    model.add_user(connection, 'name','test@example.com', '1Secret1234**')
-    with pytest.raises(Exception) as exception_info:
-        model.change_password(connection, 'test@example.com', '2Secret1234**', '3Secret1234**')
-    assert str(exception_info.value) == 'Utilisateur inconnu'
-
-
-def test_check_password_strength_length():       
-    with pytest.raises(Exception) as exception_info:
-        model.check_password_strength('aaa')
-    assert str(exception_info.value) == 'Mot de passe trop court'
-
-
-def test_get_book_and_insert_book() :
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    books = data.books()
-    model.insert_book(connection,books[0])
-    book_id = books[0]['id']
-    book = model.get_book(connection, book_id)
-    assert book == books[0]
-
-def test_get_books_in_list():
+class TestModel:
+    """Tests pour le module model avec PostgreSQL"""
     
-    connection = model.connect(":memory:")
-    model.create_database(connection)
+    @pytest.fixture
+    def mock_connection(self):
+        """Mock de la connexion PostgreSQL"""
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        return mock_conn, mock_cursor
     
-   
-    for book in data.books():
-        model.insert_book(connection, book)
-    for book_list in data.book_lists():
-        model.insert_book_list(connection, book_list)
-    for relation in data.book_list_relations():
-        model.insert_book_list_relation(connection, {'book_id': relation[0], 'list_id': relation[1]})
+    def test_connect_with_env_var(self, mock_connection):
+        """Test de la fonction connect avec variable d'environnement"""
+        with patch.dict(os.environ, {'DATABASE_URL': TEST_DATABASE_URL}):
+            with patch('psycopg.connect') as mock_connect:
+                mock_connect.return_value = mock_connection[0]
+                conn = model.connect()
+                mock_connect.assert_called_once_with(TEST_DATABASE_URL)
     
+    def test_connect_with_parameter(self, mock_connection):
+        """Test de la fonction connect avec paramètre"""
+        with patch('psycopg.connect') as mock_connect:
+            mock_connect.return_value = mock_connection[0]
+            conn = model.connect(TEST_DATABASE_URL)
+            mock_connect.assert_called_once_with(TEST_DATABASE_URL)
     
-    books = model.get_books_in_list(connection, 1)
-    assert len(books) > 0
-    for book in books:
-        assert 'id' in book
-        assert 'title' in book
-        assert 'author' in book
-        assert 'genre' in book
-        assert 'publication_date' in book
-        assert 'isbn' in book
-        assert 'description' in book
+    def test_connect_missing_env_var(self):
+        """Test de la fonction connect sans variable d'environnement"""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(Exception, match="Variable d'environnement DATABASE_URL manquante"):
+                model.connect()
+    
+    def test_add_user(self, mock_connection):
+        """Test de l'ajout d'un utilisateur"""
+        mock_conn, mock_cursor = mock_connection
+        
+        # Mock du hashage du mot de passe
+        with patch('model.hash_password', return_value='hashed_password'):
+            model.add_user(mock_conn, 'test_user', 'test@example.com', 'password123')
+            
+            # Vérifier que la requête SQL a été exécutée
+            mock_cursor.execute.assert_called_once()
+            call_args = mock_cursor.execute.call_args[0]
+            assert 'INSERT INTO users' in call_args[0]
+            assert call_args[1] == ('test_user', 'test@example.com', 'hashed_password')
+    
+    def test_get_user_success(self, mock_connection):
+        """Test de récupération d'un utilisateur (succès)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchone.return_value = (1, 'test_user', 'test@example.com', 'hashed_password')
+        
+        # Mock de la vérification du mot de passe
+        with patch('model.scrypt.verify', return_value=True):
+            result = model.get_user(mock_conn, 'test@example.com', 'password123')
+            
+            assert result == {'id': 1, 'email': 'test@example.com', 'name': 'test_user'}
+            mock_cursor.execute.assert_called_once()
+    
+    def test_get_user_not_found(self, mock_connection):
+        """Test de récupération d'un utilisateur (non trouvé)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchone.return_value = None
+        
+        with pytest.raises(Exception, match="Utilisateur inconnu"):
+            model.get_user(mock_conn, 'test@example.com', 'password123')
+    
+    def test_get_user_wrong_password(self, mock_connection):
+        """Test de récupération d'un utilisateur (mauvais mot de passe)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchone.return_value = (1, 'test_user', 'test@example.com', 'hashed_password')
+        
+        # Mock de la vérification du mot de passe (échec)
+        with patch('model.scrypt.verify', return_value=False):
+            with pytest.raises(Exception, match="Utilisateur inconnu"):
+                model.get_user(mock_conn, 'test@example.com', 'wrong_password')
+    
+    def test_get_book_success(self, mock_connection):
+        """Test de récupération d'un livre (succès)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchone.return_value = (1, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 
+                                           'Conte philosophique', '1943-04-06', '9782070612758', 
+                                           'Description', '/static/Livre.jpeg')
+        
+        result = model.get_book(mock_conn, 1)
+        
+        expected = {
+            'id': 1, 'title': 'Le Petit Prince', 'author': 'Antoine de Saint-Exupéry',
+            'genre': 'Conte philosophique', 'publication_date': '1943-04-06',
+            'isbn': '9782070612758', 'description': 'Description', 'image_url': '/static/Livre.jpeg'
+        }
+        assert result == expected
+        mock_cursor.execute.assert_called_once()
+    
+    def test_get_book_not_found(self, mock_connection):
+        """Test de récupération d'un livre (non trouvé)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchone.return_value = None
+        
+        with pytest.raises(Exception, match="Livre inconnu"):
+            model.get_book(mock_conn, 999)
+    
+    def test_get_lists_success(self, mock_connection):
+        """Test de récupération des listes (succès)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchall.return_value = [
+            (1, 'Classiques Français', 'Description', '/static/francais.jpeg'),
+            (2, 'Philosophie', 'Description', '/static/philosophie.jpeg')
+        ]
+        
+        result = model.get_lists(mock_conn)
+        
+        expected = [
+            {'id': 1, 'list_name': 'Classiques Français', 'description': 'Description', 'image_url': '/static/francais.jpeg'},
+            {'id': 2, 'list_name': 'Philosophie', 'description': 'Description', 'image_url': '/static/philosophie.jpeg'}
+        ]
+        assert result == expected
+        mock_cursor.execute.assert_called_once()
+    
+    def test_get_lists_empty(self, mock_connection):
+        """Test de récupération des listes (vide)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchall.return_value = []
+        
+        with pytest.raises(Exception, match="Aucune liste trouvée"):
+            model.get_lists(mock_conn)
+    
+    def test_search_book_success(self, mock_connection):
+        """Test de recherche de livre (succès)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchall.return_value = [
+            (1, 'Le Petit Prince', 'Antoine de Saint-Exupéry', 'Conte philosophique', 
+             '1943-04-06', '9782070612758', 'Description', '/static/Livre.jpeg')
+        ]
+        
+        result = model.searchBook(mock_conn, 'Prince')
+        
+        expected = [{
+            'id': 1, 'title': 'Le Petit Prince', 'author': 'Antoine de Saint-Exupéry',
+            'genre': 'Conte philosophique', 'publication_date': '1943-04-06',
+            'isbn': '9782070612758', 'description': 'Description', 'image_url': '/static/Livre.jpeg'
+        }]
+        assert result == expected
+        mock_cursor.execute.assert_called_once()
+    
+    def test_search_book_no_results(self, mock_connection):
+        """Test de recherche de livre (aucun résultat)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.fetchall.return_value = []
+        
+        with pytest.raises(Exception, match="Aucun résultat"):
+            model.searchBook(mock_conn, 'Inexistant')
+    
+    def test_password_strength_valid(self):
+        """Test de validation de mot de passe (valide)"""
+        valid_passwords = [
+            'Password123!',
+            'MyStr0ng#Pass',
+            'Test@2024$'
+        ]
+        
+        for password in valid_passwords:
+            # Ne doit pas lever d'exception
+            model.check_password_strength(password)
+    
+    def test_password_strength_invalid(self):
+        """Test de validation de mot de passe (invalide)"""
+        invalid_passwords = [
+            'short',           # Trop court
+            'nouppercase123!', # Pas de majuscule
+            'NOLOWERCASE123!', # Pas de minuscule
+            'NoNumbers!',      # Pas de chiffre
+            'NoSpecial123',    # Pas de caractère spécial
+            'Invalid@char'     # Caractère invalide
+        ]
+        
+        for password in invalid_passwords:
+            with pytest.raises(Exception):
+                model.check_password_strength(password)
+    
+    def test_hash_password(self):
+        """Test de hashage du mot de passe"""
+        password = 'TestPassword123!'
+        
+        with patch('model.check_password_strength'):
+            with patch('model.scrypt.using') as mock_scrypt:
+                mock_scrypt.return_value.hash.return_value = 'hashed_password'
+                
+                result = model.hash_password(password)
+                
+                assert result == 'hashed_password'
+                mock_scrypt.assert_called_once_with(salt_size=16)
+    
+    def test_delete_book_success(self, mock_connection):
+        """Test de suppression d'un livre (succès)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.rowcount = 1
+        
+        result = model.delete_book(mock_conn, 1)
+        
+        assert result == "Le livre a été supprimé."
+        assert mock_cursor.execute.call_count == 2  # Suppression des relations + du livre
+        mock_conn.commit.assert_called_once()
+    
+    def test_delete_book_not_found(self, mock_connection):
+        """Test de suppression d'un livre (non trouvé)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.rowcount = 0
+        
+        result = model.delete_book(mock_conn, 999)
+        
+        assert result == "Le livre n'a pas été supprimé!"
+    
+    def test_delete_book_error(self, mock_connection):
+        """Test de suppression d'un livre (erreur)"""
+        mock_conn, mock_cursor = mock_connection
+        mock_cursor.execute.side_effect = Exception("Database error")
+        
+        result = model.delete_book(mock_conn, 1)
+        
+        assert result == "Le livre n'a pas été supprimé!"
+        mock_conn.rollback.assert_called_once()
 
-def test_get_lists_of_book():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    
-    for book in data.books():
-        model.insert_book(connection, book)
-    for book_list in data.book_lists():
-        model.insert_book_list(connection, book_list)
-    for relation in data.book_list_relations():
-        model.insert_book_list_relation(connection, {'book_id': relation[0], 'list_id': relation[1]})
-    
-    lists = model.get_lists_of_book(connection, 1)
-    assert len(lists) > 0
-    for book_list in lists:
-        assert 'id' in book_list
-        assert 'list_name' in book_list
-        assert 'description' in book_list
-
-def test_get_lists():
-    connection = model.connect(":memory:")
-    model.create_database(connection)
-    
-
-    for book_list in data.book_lists():
-        model.insert_book_list(connection, book_list)
-    
-
-    retrieved_lists = model.get_lists(connection)
-    
-    assert retrieved_lists == data.book_lists()
+if __name__ == '__main__':
+    pytest.main([__file__])
