@@ -8,11 +8,11 @@ echo "Début du script de déploiement de l'application Flask avec Docker..."
 # Variables de configuration
 APP_DIR="/opt/web-app"
 DOCKER_COMPOSE_FILE="docker-compose.yml"
-DB_HOST="--------------------------------"
+DB_HOST="---
 SECRET_KEY=$(openssl rand -base64 32)
-DB_USER="--------------------------------"
-DB_PASSWORD="--------------------------------"
-DB_NAME="--------------------------------"
+DB_USER="----"
+DB_PASSWORD="-----"
+DB_NAME="-----"
 # Couleurs pour les messages
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -32,11 +32,6 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Vérifier si on est root
-if [[ $EUID -eq 0 ]]; then
-   log_error "Ce script ne doit pas être exécuté en tant que root"
-   exit 1
-fi
 
 
 # Tester la connectivité vers la VM BDD
@@ -57,19 +52,19 @@ if ! command -v docker &> /dev/null; then
 
     # Ajouter la clé GPG de Docker (si non présente déjà)
     if [ ! -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
     fi
 
     # Ajouter le repository Docker (si absent)
     if [ ! -f /etc/apt/sources.list.d/docker.list ]; then
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
+       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
         https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
         > /etc/apt/sources.list.d/docker.list
     fi
 
     # Installer Docker
-    apt update -y
-    apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+     apt update -y
+     apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
     log_info "Docker installé avec succès"
 else
@@ -78,11 +73,11 @@ fi
 
 # Ajouter l'utilisateur au groupe docker
 log_info "Configuration des permissions Docker..."
-# sudo usermod -aG docker $USER pour rien car on utilise sudo ! 
-sudo systemctl start docker
-sudo systemctl enable docker
+# sudo usermod -aG docker $USER pour rien car on utilise sudo !
+ systemctl start docker
+ systemctl enable docker
 
-sudo chown -R $USER:$USER $APP_DIR
+ chown -R $USER:$USER $APP_DIR
 
 # Copier uniquement les fichiers Docker et docker-compose dans $APP_DIR
 log_info "Copie des Dockerfiles et docker-compose.yml vers $APP_DIR..."
@@ -113,10 +108,10 @@ EOF
 
 # Construire et démarrer l'application
 log_info "Construction de l'image Docker..."
-sudo docker compose build
+ docker compose build
 
 log_info "Démarrage de l'application..."
-sudo docker compose up -d
+ docker compose up -d
 
 # Attendre que l'application soit prête
 log_info "Attente du démarrage de l'application..."
@@ -124,7 +119,7 @@ sleep 10
 
 # Vérification de l'état
 log_info "Vérification de l'état de l'application..."
-sudo docker compose ps
+ docker compose ps
 
 # Test de connectivité
 log_info "Test de connectivité..."
@@ -142,12 +137,12 @@ fi
 
 # Configuration du firewall (Ubuntu UFW)
 log_info "Configuration du firewall UFW..."
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 5000/tcp  # Flask (pour debug)
+ ufw allow 22/tcp    # SSH
+ ufw allow 80/tcp    # HTTP
+ ufw allow 5000/tcp  # Flask (pour debug)
 # Port 443 (HTTPS) commenté car pas de SSL pour le moment
 # sudo ufw allow 443/tcp
-sudo ufw --force enable
+ ufw --force enable
 log_info "Firewall UFW configuré (SSH, HTTP, Flask debug)"
 
 # Afficher les logs
@@ -164,5 +159,3 @@ log_info "Déploiement terminé avec succès!"
 log_info "Application accessible sur: http://$(hostname -I | awk '{print $1}')"
 log_info "Application accessible sur: http://$(hostname -I | awk '{print $1}'):5000 (debug)"
 log_info "Répertoire de l'application: $APP_DIR"
-
-

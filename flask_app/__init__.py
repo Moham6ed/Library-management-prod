@@ -16,13 +16,15 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
-# Talisman désactivé pour permettre HTTP (pas de SSL)
-# Talisman(app, content_security_policy={
-#     'default-src' : '\'none\'',
-#     'style-src': [ 'https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css' ],
-#     'img-src' : ['\'self\'', 'data:'],
-#     'script-src' : '\'none\''
-#   })
+# Talisman activé avec HTTPS désactivé (force_https=False)
+Talisman(app, 
+    force_https=False,  # Désactive la redirection HTTPS forcée
+    content_security_policy={
+        'default-src' : '\'none\'',
+        'style-src': [ 'https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css' ],
+        'img-src' : ['\'self\'', 'data:'],
+        'script-src' : '\'none\''
+    })
 CSRFProtect(app)
 Session(app)
 QRcode(app)

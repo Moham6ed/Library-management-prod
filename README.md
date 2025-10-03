@@ -59,7 +59,7 @@ Ce projet est une application Flask pour la gestion de bibliothèque en ligne d�
 
 ### Étape 2 : VM Web (Flask)
 
-1. **Créer la VM Web** avec Ubuntu/CentOS
+1. **Créer la VM Web** avec Ubuntu
 
 2. **Cloner le repository** sur la VM Web :
    ```bash
@@ -67,48 +67,48 @@ Ce projet est une application Flask pour la gestion de bibliothèque en ligne d�
    cd /opt/web-app
    ```
 
-3. **Copier les fichiers Docker** :
+3. **Modifier les variables dans le script** :
    ```bash
-   cp infra/web/* ./
+   sudo nano infra/web/setup-web-vm.sh
+   ```
+   
+   Modifier les lignes 11-15 :
+   ```bash
+   DB_HOST="<IP-VM-BDD>"           # Ex: "192.168.1.100"
+   DB_USER="<nom-utilisateur>"     # Ex: "mohhhhamed_hebbbbache"
+   DB_PASSWORD="<mot-de-passe>"    # Ex: "HolalaHolala"
+   DB_NAME="<nom-base>"            # Ex: "app_bibliotheque_db"
    ```
 
 4. **Exécuter le script d'installation** :
    ```bash
-   chmod +x setup-web-vm.sh
-   ./setup-web-vm.sh
+   chmod +x infra/web/setup-web-vm.sh
+   sudo ./infra/web/setup-web-vm.sh
    ```
-
-5. **Entrer l'IP de la VM BDD** quand demandé
 
 ## Configuration
 
 ### Variables d'Environnement
 
-Le script crée automatiquement un fichier `.env` avec :
+Le script crée automatiquement un fichier `.env` avec les variables que vous avez configurées :
 ```bash
-DATABASE_URL=postgresql://user:password@<IP-VM-BDD>:5432/database?sslmode=disable
+DATABASE_URL=postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:5432/<DB_NAME>?sslmode=disable
 SECRET_KEY=<clé-générée-automatiquement>
 FLASK_ENV=production
 ```
 
 ### Firewall
 
-#### VM BDD
-- Port 5432 (PostgreSQL) : autoriser uniquement
-
-#### VM Web
-- Port 80 (HTTP) : autoriser toutes les IPs
-- Port 5000 (Flask debug) : autoriser toutes les IPs
+Le script configure automatiquement le firewall :
+- **VM BDD** : Port 5432 (PostgreSQL) ouvert
+- **VM Web** : Ports 80, 5000, 22 ouverts
 
 ## Utilisation
 
 ### Accès à l'application
 - **URL principale** : `http://<IP-VM-WEB>`
-- **URL debug** : `http://<IP-VM-WEB>:5000`
 
-### Compte administrateur par défaut
-- **Email** : `admin@example.com`
-- **Mot de passe** : Configuré lors de l'installation de la BDD
+
 
 ## Maintenance
 
@@ -120,7 +120,7 @@ FLASK_ENV=production
 sudo systemctl restart postgresql
 
 # Sauvegarder la base
-pg_dump "postgresql://user:password@localhost:5432/database" > backup.sql
+pg_dump "postgresql://<DB_USER>:<DB_PASSWORD>@localhost:5432/<DB_NAME>" > backup.sql
 
 # Vérifier l'état
 sudo systemctl status postgresql
@@ -129,18 +129,18 @@ sudo systemctl status postgresql
 #### VM Web
 ```bash
 # Voir les logs
-docker compose logs -f
+sudo docker compose logs -f
 
 # Redémarrer l'application
-docker compose restart
+sudo docker compose restart
 
 # Mettre à jour l'application
 git pull
-docker compose build
-docker compose up -d
+sudo docker compose build
+sudo docker compose up -d
 
 # Voir l'état
-docker compose ps
+sudo docker compose ps
 ```
 
 ## Structure du Projet
