@@ -15,7 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copier le code de l'application
 COPY flask_app/ ./flask_app/
-COPY init_db.py .
 
 # Créer un utilisateur non-root pour la sécurité
 RUN useradd --create-home --shell /bin/bash app && \

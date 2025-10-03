@@ -1,7 +1,6 @@
 import os
 import psycopg
 from passlib.hash import scrypt
-from flask_app import data
 from PIL import Image
 
 def dictionary_factory(cursor, row):
@@ -25,33 +24,13 @@ def connect(database_url=None):
   return connection
 
 
-def read_build_script():
-  """Lire le script de création de schéma (PostgreSQL)"""
-  path = os.path.join(os.path.dirname(__file__), 'build.sql')
-  with open(path, 'r', encoding='utf-8') as file:
-    script = file.read()
-  return script
+# Fonction read_build_script supprimée - utilisée seulement pour l'initialisation de la BDD
+# Le script est maintenant dans infra/db/build_postgres.sql
 
 
-def create_database(connection):
-  """Créer le schéma de base de données PostgreSQL"""
-  script = read_build_script()
-  with connection.cursor() as cur:
-    cur.execute(script)
-  connection.commit()
+# Fonction create_database supprimée - utilisée seulement pour l'initialisation de la BDD
+# Le schéma est maintenant créé par infra/db/build_postgres.sql
 
-
-def fill_database(connection):
-  books = data.books()
-  for book in books:
-    insert_book(connection, book)
-  book_lists = data.book_lists()
-  for book_list in book_lists:
-    insert_book_list(connection, book_list)
-  book_list_relations = data.book_list_relations()
-  for book_list_relation in book_list_relations:
-    insert_book_list_relation(connection, book_list_relation)
-  
 
 def insert_book(connection, book):
     """Insérer un livre dans la base PostgreSQL"""
